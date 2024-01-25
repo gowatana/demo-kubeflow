@@ -1,0 +1,12 @@
+# ベースイメージ
+FROM tensorflow/tensorflow:latest
+
+# 依存関係のインストール
+#RUN pip install tensorflow numpy
+
+# スクリプトを追加
+COPY predict_model.py /predict_model.py
+
+# 実行コマンド
+#ENTRYPOINT ["python", "/predict_model.py"]
+

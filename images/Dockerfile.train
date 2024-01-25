@@ -1,12 +1,12 @@
 # ベースイメージ
-FROM nvcr.io/nvidia/tensorflow:23.03-tf2-py3
+FROM tensorflow/tensorflow:latest
 
 # 依存関係のインストール
 #RUN pip install tensorflow numpy
 
 # スクリプトを追加
-COPY predict_model.py /predict_model.py
+COPY train_and_save_model.py /train_and_save_model.py
 
 # 実行コマンド
-#ENTRYPOINT ["python", "/predict_model.py"]
+#ENTRYPOINT ["python", "/train_and_save_model.py"]
 

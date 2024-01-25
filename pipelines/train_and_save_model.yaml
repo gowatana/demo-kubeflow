@@ -1,0 +1,9 @@
+name: 'Train and Save Model'
+description: 'Trains and saves an MNIST model'
+inputs: []
+outputs: []
+implementation:
+  container:
+    image: kubeflowmnist2024001.azurecr.io/mnist-demo/train-model:no-entory
+    command: ["python", "/train_and_save_model.py", "/mnt/demo-vol-02"]
+

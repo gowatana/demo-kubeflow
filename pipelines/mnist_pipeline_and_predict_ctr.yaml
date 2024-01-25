@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mnist-training-and-prediction-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline_compilation_time: '2024-01-25T08:53:52.678231',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline that trains
+      an MNIST model, saves it to PVC and makes a prediction.", "name": "Mnist Training
+      and Prediction Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3}
+spec:
+  entrypoint: mnist-training-and-prediction-pipeline
+  templates:
+  - name: mnist-training-and-prediction-pipeline
+    dag:
+      tasks:
+      - name: predict-model
+        template: predict-model
+        dependencies: [train-and-save-model]
+      - {name: train-and-save-model, template: train-and-save-model}
+  - name: predict-model
+    container:
+      args: []
+      command: [python, /predict_model.py, /mnt/demo-vol-02]
+      image: kubeflowmnist2024001.azurecr.io/mnist-demo/predict-model:no-entory
+      volumeMounts:
+      - {mountPath: /mnt/demo-vol-02, name: pvolume-aec9e3f27262455d00a862a893a727e956376901472fd6aeaa30a04}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Loads
+          a trained MNIST model and makes a prediction", "implementation": {"container":
+          {"command": ["python", "/predict_model.py", "/mnt/demo-vol-02"], "image":
+          "kubeflowmnist2024001.azurecr.io/mnist-demo/predict-model:no-entory"}},
+          "inputs": [], "name": "Predict Model", "outputs": []}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "1de8199ebca0a72733503bcf7d13914b263472932bd847cdd144743d81403888", "url":
+          "predict_model.yaml"}'}
+    volumes:
+    - name: pvolume-aec9e3f27262455d00a862a893a727e956376901472fd6aeaa30a04
+      persistentVolumeClaim: {claimName: demo-vol-02}
+  - name: train-and-save-model
+    container:
+      args: []
+      command: [python, /train_and_save_model.py, /mnt/demo-vol-02]
+      image: kubeflowmnist2024001.azurecr.io/mnist-demo/train-model:no-entory
+      volumeMounts:
+      - {mountPath: /mnt/demo-vol-02, name: pvolume-aec9e3f27262455d00a862a893a727e956376901472fd6aeaa30a04}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Trains
+          and saves an MNIST model", "implementation": {"container": {"command": ["python",
+          "/train_and_save_model.py", "/mnt/demo-vol-02"], "image": "kubeflowmnist2024001.azurecr.io/mnist-demo/train-model:no-entory"}},
+          "inputs": [], "name": "Train and Save Model", "outputs": []}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "ae1397181af58b0a8ff3772f2d5b517eefac83e7fe06cab67887c6059c3ae835", "url":
+          "train_and_save_model.yaml"}'}
+    volumes:
+    - name: pvolume-aec9e3f27262455d00a862a893a727e956376901472fd6aeaa30a04
+      persistentVolumeClaim: {claimName: demo-vol-02}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
+

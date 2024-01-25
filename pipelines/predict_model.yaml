@@ -1,0 +1,9 @@
+name: 'Predict Model'
+description: 'Loads a trained MNIST model and makes a prediction'
+inputs: []
+outputs: []
+implementation:
+  container:
+    image: kubeflowmnist2024001.azurecr.io/mnist-demo/predict-model:no-entory
+    command: ["python", "/predict_model.py", "/mnt/demo-vol-02"]
+
