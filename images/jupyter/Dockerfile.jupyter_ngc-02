@@ -1,0 +1,14 @@
+# 基本イメージの指定
+FROM nvcr.io/nvidia/tensorflow:23.03-tf2-py3
+
+# Jupyterインストール
+RUN pip install jupyter jupyterlab notebook
+
+# ワークディレクトリの設定
+WORKDIR /workspace
+
+# Jupyterノートブックの起動コマンド
+#CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+
+USER root
+EXPOSE 8888
