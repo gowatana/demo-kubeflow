@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-vol-01-pod
+  namespace: demo-01
+  labels:
+    demo: pvc-demo
+spec:
+  volumes:
+  - name: demo-vol
+    persistentVolumeClaim:
+      claimName: demo-vol-01
+  containers:
+  - name: centos-container
+    image: ghcr.io/gowatana/centos7:httpd
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: demo-vol-01
+      mountPath: "/mnt"
+
