@@ -7,9 +7,8 @@ RUN pip install jupyter
 # ワークディレクトリの設定
 WORKDIR /workspace
 
+# Jupyterノートブックの起動コマンド
+#CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+
 USER root
 EXPOSE 8888
-
-# Jupyterノートブックの起動コマンド
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
-
