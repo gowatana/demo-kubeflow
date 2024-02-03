@@ -8,15 +8,16 @@ def train_and_save_model(volume_path):
     x_train, x_test = x_train / 255.0, x_test / 255.0
 
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation=tf.nn.relu),
+        tf.keras.layers.Flatten(input_shape=(28, 28)),
+        tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(10, activation=tf.nn.softmax)
+        tf.keras.layers.Dense(10)
     ])
 
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
     model.fit(x_train, y_train, epochs=5)
-    model.evaluate(x_test, y_test)
+    model.evaluate(x_test, y_test, verbose=2)
 
     model.save(f'{volume_path}/mnist_saved_model')
 
