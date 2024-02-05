@@ -5,5 +5,5 @@ outputs: []
 implementation:
   container:
     image: kubeflowmnist2024001.azurecr.io/mnist-demo/predict:ngc
-    command: ["python", "/predict_model.py", "/mnt/demo-vol-01"]
+    command: ["python", "/predict_model.py", "/mnt/demo-vol"]
 

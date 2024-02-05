@@ -5,5 +5,5 @@ outputs: []
 implementation:
   container:
     image: kubeflowmnist2024001.azurecr.io/mnist-demo/train:ngc
-    command: ["python", "/train_and_save_model.py", "/mnt/demo-vol-01"]
+    command: ["python", "/train_and_save_model.py", "/mnt/demo-vol"]
 

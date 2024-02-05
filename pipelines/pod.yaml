@@ -18,5 +18,5 @@ spec:
     - containerPort: 80
     volumeMounts:
     - name: demo-vol-01
-      mountPath: "/mnt"
+      mountPath: "/mnt/demo-vol"
 
