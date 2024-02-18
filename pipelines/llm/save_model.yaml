@@ -1,0 +1,10 @@
+name: 'Save Model'
+description: 'Saves an LLM model'
+inputs:
+  - {name: model_name, type: String}
+outputs: []
+implementation:
+  container:
+    image: kubeflowmnist2024001.azurecr.io/llm-demo/transformers:v1
+    command: ["python", "/save_model.py", "/mnt/saved_model", {inputValue: model_name}]
+

@@ -1,0 +1,13 @@
+name: 'Generate Text'
+description: 'Generate text with LLM'
+inputs:
+  - {name: input_text, type: String}
+outputs:
+  - {name: output_text, type: String, description: 'Generated text'}
+implementation:
+  container:
+    image: kubeflowmnist2024001.azurecr.io/llm-demo/gen-text:v4
+    command: ["python", "/gen_text.py", "/mnt/saved_model", "/mnt/output/generated_text.txt", {inputValue: input_text}]
+    fileOutputs:
+      output_text: "/mnt/output/generated_text.txt"
+
