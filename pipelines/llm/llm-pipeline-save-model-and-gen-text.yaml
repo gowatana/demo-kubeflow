@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: save-llm-model-and-generate-text-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline_compilation_time: '2024-02-18T18:53:49.963809',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline for saving an
+      LLM model to PV, and Generate Text.", "inputs": [{"default": "demo-vol-02",
+      "name": "model_pvc_name", "optional": true, "type": "String"}, {"default": "demo-vol-03",
+      "name": "output_pvc_name", "optional": true, "type": "String"}, {"default":
+      "cyberagent/open-calm-small", "name": "model_name", "optional": true, "type":
+      "String"}, {"default": "VMware Private AI is", "name": "input_text", "optional":
+      true, "type": "String"}], "name": "Save LLM Model and Generate Text Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3}
+spec:
+  entrypoint: save-llm-model-and-generate-text-pipeline
+  templates:
+  - name: generate-text
+    container:
+      args: []
+      command: [python, /gen_text.py, /mnt/saved_model, /mnt/output/generated_text.txt,
+        '{{inputs.parameters.input_text}}']
+      image: kubeflowmnist2024001.azurecr.io/llm-demo/gen-text:v4
+      volumeMounts:
+      - {mountPath: /mnt/saved_model, name: pvolume-379ec214388c1a26014c6a3a703e883a6d2158aab4ba8bda74d1622}
+      - {mountPath: /mnt/output, name: pvolume-ee8052dcc43f7a8e973360586da866cde7265006723b75b9f12d3a8}
+    inputs:
+      parameters:
+      - {name: input_text}
+      - {name: model_pvc_name}
+      - {name: output_pvc_name}
+    outputs:
+      artifacts:
+      - {name: generate-text-output_text, path: /mnt/output/generated_text.txt}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Generate
+          text with LLM", "implementation": {"container": {"command": ["python", "/gen_text.py",
+          "/mnt/saved_model", "/mnt/output/generated_text.txt", {"inputValue": "input_text"}],
+          "fileOutputs": {"output_text": "/mnt/output/generated_text.txt"}, "image":
+          "kubeflowmnist2024001.azurecr.io/llm-demo/gen-text:v4"}}, "inputs": [{"name":
+          "input_text", "type": "String"}], "name": "Generate Text", "outputs": [{"description":
+          "Generated text", "name": "output_text", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "ecb6952e715986802c0c0d69edcde64bf0b021f8269e674743da6faabef50dd8", "url":
+          "gen_text.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"input_text":
+          "{{inputs.parameters.input_text}}"}'}
+    volumes:
+    - name: pvolume-379ec214388c1a26014c6a3a703e883a6d2158aab4ba8bda74d1622
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.model_pvc_name}}'}
+    - name: pvolume-ee8052dcc43f7a8e973360586da866cde7265006723b75b9f12d3a8
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.output_pvc_name}}'}
+  - name: save-llm-model-and-generate-text-pipeline
+    inputs:
+      parameters:
+      - {name: input_text}
+      - {name: model_name}
+      - {name: model_pvc_name}
+      - {name: output_pvc_name}
+    dag:
+      tasks:
+      - name: generate-text
+        template: generate-text
+        dependencies: [save-model]
+        arguments:
+          parameters:
+          - {name: input_text, value: '{{inputs.parameters.input_text}}'}
+          - {name: model_pvc_name, value: '{{inputs.parameters.model_pvc_name}}'}
+          - {name: output_pvc_name, value: '{{inputs.parameters.output_pvc_name}}'}
+      - name: save-model
+        template: save-model
+        arguments:
+          parameters:
+          - {name: model_name, value: '{{inputs.parameters.model_name}}'}
+          - {name: model_pvc_name, value: '{{inputs.parameters.model_pvc_name}}'}
+  - name: save-model
+    container:
+      args: []
+      command: [python, /save_model.py, /mnt/saved_model, '{{inputs.parameters.model_name}}']
+      image: kubeflowmnist2024001.azurecr.io/llm-demo/transformers:v1
+      volumeMounts:
+      - {mountPath: /mnt/saved_model, name: pvolume-379ec214388c1a26014c6a3a703e883a6d2158aab4ba8bda74d1622}
+    inputs:
+      parameters:
+      - {name: model_name}
+      - {name: model_pvc_name}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Saves
+          an LLM model", "implementation": {"container": {"command": ["python", "/save_model.py",
+          "/mnt/saved_model", {"inputValue": "model_name"}], "image": "kubeflowmnist2024001.azurecr.io/llm-demo/transformers:v1"}},
+          "inputs": [{"name": "model_name", "type": "String"}], "name": "Save Model",
+          "outputs": []}', pipelines.kubeflow.org/component_ref: '{"digest": "16ed23a30cd1e9c7a12c37e5ecf13d21efbe583039afaba85ec09465fd47738d",
+          "url": "save_model.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"model_name":
+          "{{inputs.parameters.model_name}}"}'}
+    volumes:
+    - name: pvolume-379ec214388c1a26014c6a3a703e883a6d2158aab4ba8bda74d1622
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.model_pvc_name}}'}
+  arguments:
+    parameters:
+    - {name: model_pvc_name, value: demo-vol-02}
+    - {name: output_pvc_name, value: demo-vol-03}
+    - {name: model_name, value: cyberagent/open-calm-small}
+    - {name: input_text, value: VMware Private AI is}
+  serviceAccountName: pipeline-runner

@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: save-llm-model-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline_compilation_time: '2024-02-18T17:34:43.021495',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline for saving an
+      LLM model to PV.", "inputs": [{"default": "demo-vol-02", "name": "pvc_name",
+      "optional": true, "type": "String"}, {"default": "cyberagent/open-calm-small",
+      "name": "model_name", "optional": true, "type": "String"}], "name": "Save LLM
+      Model Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3}
+spec:
+  entrypoint: save-llm-model-pipeline
+  templates:
+  - name: save-llm-model-pipeline
+    inputs:
+      parameters:
+      - {name: model_name}
+      - {name: pvc_name}
+    dag:
+      tasks:
+      - name: save-model
+        template: save-model
+        arguments:
+          parameters:
+          - {name: model_name, value: '{{inputs.parameters.model_name}}'}
+          - {name: pvc_name, value: '{{inputs.parameters.pvc_name}}'}
+  - name: save-model
+    container:
+      args: []
+      command: [python, /save_model.py, /mnt/saved_model, '{{inputs.parameters.model_name}}']
+      image: kubeflowmnist2024001.azurecr.io/llm-demo/transformers:v1
+      volumeMounts:
+      - {mountPath: /mnt/save_model, name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b}
+    inputs:
+      parameters:
+      - {name: model_name}
+      - {name: pvc_name}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Saves
+          an LLM model", "implementation": {"container": {"command": ["python", "/save_model.py",
+          "/mnt/saved_model", {"inputValue": "model_name"}], "image": "kubeflowmnist2024001.azurecr.io/llm-demo/transformers:v1"}},
+          "inputs": [{"name": "model_name", "type": "String"}], "name": "Save Model",
+          "outputs": []}', pipelines.kubeflow.org/component_ref: '{"digest": "16ed23a30cd1e9c7a12c37e5ecf13d21efbe583039afaba85ec09465fd47738d",
+          "url": "save_model.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"model_name":
+          "{{inputs.parameters.model_name}}"}'}
+    volumes:
+    - name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.pvc_name}}'}
+  arguments:
+    parameters:
+    - {name: pvc_name, value: demo-vol-02}
+    - {name: model_name, value: cyberagent/open-calm-small}
+  serviceAccountName: pipeline-runner
