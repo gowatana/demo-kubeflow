@@ -1,0 +1,200 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mnist-inference-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline_compilation_time: '2024-02-19T14:12:30.172826',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Inference pipeline with
+      an MNIST model.", "inputs": [{"default": "demo-vol-01", "name": "pvc_name",
+      "optional": true}, {"default": "/mnt/data/images/test_0.png", "name": "image_file_path",
+      "optional": true}], "name": "Mnist Inference Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3}
+spec:
+  entrypoint: mnist-inference-pipeline
+  templates:
+  - name: inference
+    container:
+      args: [--pvc-name, '{{inputs.parameters.pvc_name}}', --image-file-path, '{{inputs.parameters.image_file_path}}',
+        '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def inference(pvc_name, image_file_path):
+            from PIL import Image
+            import numpy as np
+            import tensorflow as tf
+
+            model_dir_path = '/mnt/data/saved_model'
+
+            img = Image.open(image_file_path)
+            img = img.convert('L').resize((28, 28))
+            img_array = np.array(img) / 255.0
+            img_array = img_array.reshape(1, 28, 28)
+
+            model = tf.keras.models.load_model(model_dir_path)
+            predictions = model.predict(img_array)
+            predicted_class = np.argmax(predictions, axis=1)
+
+            output_file = '/mnt/data/inference-number.txt'
+            with open(output_file, 'w') as f:
+                inference_output = "Inference Number: " + str(predicted_class[0]) + "\n"
+                f.write(inference_output)
+            return inference_output
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Inference', description='')
+        _parser.add_argument("--pvc-name", dest="pvc_name", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--image-file-path", dest="image_file_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = inference(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: kubeflowmnist2024001.azurecr.io/mnist-demo/mnist-inference:v1
+      volumeMounts:
+      - {mountPath: /mnt/data, name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b}
+    inputs:
+      parameters:
+      - {name: image_file_path}
+      - {name: pvc_name}
+    outputs:
+      artifacts:
+      - {name: inference-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--pvc-name", {"inputValue": "pvc_name"}, "--image-file-path",
+          {"inputValue": "image_file_path"}, "----output-paths", {"outputPath": "Output"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def inference(pvc_name,
+          image_file_path):\n    from PIL import Image\n    import numpy as np\n    import
+          tensorflow as tf\n\n    model_dir_path = ''/mnt/data/saved_model''\n\n    img
+          = Image.open(image_file_path)\n    img = img.convert(''L'').resize((28,
+          28))\n    img_array = np.array(img) / 255.0\n    img_array = img_array.reshape(1,
+          28, 28)\n\n    model = tf.keras.models.load_model(model_dir_path)\n    predictions
+          = model.predict(img_array)\n    predicted_class = np.argmax(predictions,
+          axis=1)\n\n    output_file = ''/mnt/data/inference-number.txt''\n    with
+          open(output_file, ''w'') as f:\n        inference_output = \"Inference Number:
+          \" + str(predicted_class[0]) + \"\\n\"\n        f.write(inference_output)\n    return
+          inference_output\n\ndef _serialize_str(str_value: str) -> str:\n    if not
+          isinstance(str_value, str):\n        raise TypeError(''Value \"{}\" has
+          type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Inference'',
+          description='''')\n_parser.add_argument(\"--pvc-name\", dest=\"pvc_name\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--image-file-path\",
+          dest=\"image_file_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = inference(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "kubeflowmnist2024001.azurecr.io/mnist-demo/mnist-inference:v1"}},
+          "inputs": [{"name": "pvc_name"}, {"name": "image_file_path"}], "name": "Inference",
+          "outputs": [{"name": "Output", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"image_file_path": "{{inputs.parameters.image_file_path}}",
+          "pvc_name": "{{inputs.parameters.pvc_name}}"}'}
+    volumes:
+    - name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.pvc_name}}'}
+  - name: mnist-inference-pipeline
+    inputs:
+      parameters:
+      - {name: image_file_path}
+      - {name: pvc_name}
+    dag:
+      tasks:
+      - name: inference
+        template: inference
+        dependencies: [save-dataset-png]
+        arguments:
+          parameters:
+          - {name: image_file_path, value: '{{inputs.parameters.image_file_path}}'}
+          - {name: pvc_name, value: '{{inputs.parameters.pvc_name}}'}
+      - name: save-dataset-png
+        template: save-dataset-png
+        arguments:
+          parameters:
+          - {name: pvc_name, value: '{{inputs.parameters.pvc_name}}'}
+  - name: save-dataset-png
+    container:
+      args: []
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def save_dataset_png():
+            from PIL import Image
+            import tensorflow as tf
+            import os
+
+            dir_path = '/mnt/data/images'
+            os.makedirs(dir_path, exist_ok=True)
+
+            mnist = tf.keras.datasets.mnist
+            (x_train, y_train), (x_test, y_test) = mnist.load_data()
+            for i in range(10):
+                img = Image.fromarray(x_train[i])
+                img.save(os.path.join(dir_path, f'test_{i}.png'))
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Save dataset png', description='')
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = save_dataset_png(**_parsed_args)
+      image: kubeflowmnist2024001.azurecr.io/mnist-demo/mnist-inference:v1
+      volumeMounts:
+      - {mountPath: /mnt/data, name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b}
+    inputs:
+      parameters:
+      - {name: pvc_name}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": [], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          save_dataset_png():\n    from PIL import Image\n    import tensorflow as
+          tf\n    import os\n\n    dir_path = ''/mnt/data/images''\n    os.makedirs(dir_path,
+          exist_ok=True)\n\n    mnist = tf.keras.datasets.mnist\n    (x_train, y_train),
+          (x_test, y_test) = mnist.load_data()\n    for i in range(10):\n        img
+          = Image.fromarray(x_train[i])\n        img.save(os.path.join(dir_path, f''test_{i}.png''))\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Save dataset png'', description='''')\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = save_dataset_png(**_parsed_args)\n"],
+          "image": "kubeflowmnist2024001.azurecr.io/mnist-demo/mnist-inference:v1"}},
+          "name": "Save dataset png"}', pipelines.kubeflow.org/component_ref: '{}'}
+    volumes:
+    - name: pvolume-e819e39f92a888af338a32082ea85feaa488e4a0aabfacc858d718b
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.pvc_name}}'}
+  arguments:
+    parameters:
+    - {name: pvc_name, value: demo-vol-01}
+    - {name: image_file_path, value: /mnt/data/images/test_0.png}
+  serviceAccountName: pipeline-runner
